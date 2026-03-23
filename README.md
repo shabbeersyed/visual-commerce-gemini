@@ -2,6 +2,9 @@
 
 Build an **agentic supply chain system** that "sees" physical inventory using Gemini 3 Flash (Code Execution), "remembers" millions of parts using AlloyDB AI (ScaNN), and "transacts" using the A2A Protocol.
 
+🔗 **GitHub Repository:** https://github.com/shabbeersyed/visual-commerce-gemini  
+🌐 **Live Deployment:** https://your-cloud-run-url.a.run.app
+
 ## What You'll Build
 
 A multi-agent system featuring:
@@ -36,9 +39,8 @@ A multi-agent system featuring:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/MohitBhimrajka/visual-commerce-gemini-3-alloydb.git
-cd visual-commerce-gemini-3-alloydb
-
+git clone https://github.com/shabbeersyed/visual-commerce-gemini.git
+cd visual-commerce-gemini
 # 2. Run setup (validates environment, enables APIs, creates .env)
 sh setup.sh
 
@@ -52,7 +54,7 @@ sh setup.sh
 sh run.sh
 ```
 
-> **📌 Note:** All commands assume you're in the repo root (`visual-commerce-gemini-3-alloydb/`). If commands fail with "No such file", verify your location with `pwd` and navigate back to the repo.
+> **📌 Note:** All commands assume you're in the repo root (`visual-commerce-gemini/`). If commands fail with "No such file", verify your location with `pwd` and navigate back to the repo.
 
 Open http://localhost:8080 to see the Control Tower.
 
@@ -169,8 +171,8 @@ sh deploy/deploy.sh
 
 The script reads your `.env`, asks for your name, and deploys to Cloud Run. When anyone opens your URL, they'll see a popup:
 
-> 🚀 **Deployed by *Your Name*** — Powered by Gemini 3 Flash · AlloyDB AI · A2A Protocol
-> *Completed as part of Code Vipassana Season 14*
+> 🚀 **Deployed by *Shabbeer Basha Syed*** — Powered by Gemini 3 Flash · AlloyDB AI · A2A Protocol
+> *Completed by Shabbeer Basha Syed as part of Code Vipassana Season 14*
 > **[Try the codelab yourself →]**
 
 After dismissing, a persistent bottom badge stays: *"Deployed by Your Name · Code Vipassana S14 · Learn how →"*
@@ -224,3 +226,9 @@ gcloud alloydb clusters delete YOUR_CLUSTER_NAME \
 - ScaNN is based on 12 years of Google Research and powers Google Search and YouTube at billion-scale
 - Released for general availability: October 2024
 - First PostgreSQL vector index suitable for million-to-billion vectors
+
+## 👤 Author
+
+Shabbeer Basha Syed  
+Master’s in Information Systems & Technology  
+University of North Texas  
