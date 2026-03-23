@@ -15,7 +15,6 @@ echo ""
 # Load Environment Configuration
 # ============================================================================
 
-# Load environment from .env if it exists
 if [ -f "$SCRIPT_DIR/.env" ]; then
     echo "📄 Loading environment from .env..."
     set -a
@@ -29,25 +28,24 @@ fi
 # Validate Prerequisites
 # ============================================================================
 
-# Check GEMINI_API_KEY for Vision Agent
-if [ -z "$GEMINI_API_KEY" ]; then
-    echo "❌ GEMINI_API_KEY not set"
-    echo "   Get your key: https://aistudio.google.com/apikey"
-    echo "   Run: export GEMINI_API_KEY='your-key'"
-    exit 1
-fi
-echo "✅ Gemini API key configured"
-
-# Check GOOGLE_CLOUD_PROJECT for Supplier Agent
+# Vertex AI config for Vision Agent
 if [ -z "$GOOGLE_CLOUD_PROJECT" ]; then
     PROJECT=$(gcloud config get-value project 2>/dev/null)
     if [ -z "$PROJECT" ]; then
-        echo "❌ GOOGLE_CLOUD_PROJECT not set (required for Supplier Agent)"
-        echo "   Run: export GOOGLE_CLOUD_PROJECT=\$(gcloud config get-value project)"
+        echo "❌ GOOGLE_CLOUD_PROJECT not set"
+        echo "   Run: gcloud config set project YOUR_PROJECT_ID"
         exit 1
     fi
-    export GOOGLE_CLOUD_PROJECT=$PROJECT
+    export GOOGLE_CLOUD_PROJECT="$PROJECT"
 fi
+
+if [ -z "$GOOGLE_CLOUD_LOCATION" ]; then
+    export GOOGLE_CLOUD_LOCATION="global"
+fi
+
+export GOOGLE_GENAI_USE_VERTEXAI="True"
+
+echo "✅ Vertex AI configured for Vision Agent"
 echo "✅ GCP project configured for Supplier Agent"
 
 # Build ALLOYDB_INSTANCE_URI from component env vars
@@ -79,7 +77,6 @@ fi
 echo "✅ Environment configured"
 echo ""
 
-# Create logs directory
 mkdir -p logs
 
 # ============================================================================
@@ -116,19 +113,16 @@ trap cleanup SIGINT SIGTERM
 # Start Vision Agent
 # ============================================================================
 
-echo "👁️  Step 1/3: Starting Vision Agent (API Key mode)..."
+echo "👁️  Step 1/3: Starting Vision Agent (Vertex AI mode)..."
 
 cd "$SCRIPT_DIR/agents/vision-agent"
 
-# Install dependencies
 echo "   Installing dependencies..."
 pip install -q -r requirements.txt
 
-# Start Vision Agent
 python3 -m uvicorn main:app --host 0.0.0.0 --port 8081 > "$SCRIPT_DIR/logs/vision-agent.log" 2>&1 &
 VISION_PID=$!
 
-# Health check with retries
 RETRY_COUNT=0
 MAX_RETRIES=20
 VISION_HEALTHY=false
@@ -160,15 +154,12 @@ echo "🧠 Step 2/3: Starting Supplier Agent..."
 
 cd "$SCRIPT_DIR/agents/supplier-agent"
 
-# Install dependencies
 echo "   Installing dependencies..."
 pip install -q -r requirements.txt
 
-# Start Supplier Agent
 python3 -m uvicorn main:app --host 0.0.0.0 --port 8082 > "$SCRIPT_DIR/logs/supplier-agent.log" 2>&1 &
 SUPPLIER_PID=$!
 
-# Health check with retries
 RETRY_COUNT=0
 MAX_RETRIES=20
 SUPPLIER_HEALTHY=false
@@ -200,15 +191,12 @@ echo "🎨 Step 3/3: Starting Control Tower..."
 
 cd "$SCRIPT_DIR/frontend"
 
-# Install dependencies
 echo "   Installing dependencies..."
 pip install -q -r requirements.txt
 
-# Start Frontend
 python3 -m uvicorn app:app --host 0.0.0.0 --port 8080 > "$SCRIPT_DIR/logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 
-# Health check with retries
 RETRY_COUNT=0
 MAX_RETRIES=20
 FRONTEND_HEALTHY=false
@@ -259,5 +247,4 @@ echo ""
 echo "Press Ctrl+C to stop all services"
 echo ""
 
-# Keep script running and wait for signals
 wait

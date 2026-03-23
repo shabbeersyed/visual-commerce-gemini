@@ -21,10 +21,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini client with API key (no GCP project required)
-# The SDK auto-discovers GEMINI_API_KEY or GOOGLE_API_KEY from environment
+# Initialize Gemini client with Vertex AI auth
 client = genai.Client(
-    api_key=os.environ.get("GEMINI_API_KEY")
+    vertexai=True,
+    project=os.environ["GOOGLE_CLOUD_PROJECT"],
+    location=os.environ.get("GOOGLE_CLOUD_LOCATION", "global"),
 )
 
 # System instruction for precision counting + spatial detection
@@ -38,9 +39,10 @@ Rules:
 5. After counting, provide the 2D bounding box for EACH detected object as box_2d: [ymin, xmin, ymax, xmax] normalized to 0-1000
 6. Label each object with a short unique description (position, color, size)
 7. If uncertain, err on the lower count — precision over recall
-8. Your final count MUST match the number of bounding boxes you provide"""
+8. Your final count MUST match the number of bounding boxes you provide
+"""
 
-# Default query: generic, works for any object type (boxes, bottles, parts, etc.)
+# Default query: generic, works for any object type
 DEFAULT_QUERY = (
     "Analyze this image:\n"
     "1. Identify the primary object type\n"
@@ -68,13 +70,11 @@ def analyze_image(image_bytes: bytes, query: str = None, mime_type: str = "image
         config=types.GenerateContentConfig(
             system_instruction=[types.Part.from_text(text=SYSTEM_INSTRUCTION)],
             temperature=0,
-            # CODELAB STEP 1: Uncomment to enable reasoning
-            # thinking_config=types.ThinkingConfig(
-            #    thinking_level="MINIMAL",     # Valid: "MINIMAL", "LOW", "MEDIUM", "HIGH"
-            #    include_thoughts=False    # Set to True for debugging
-            # ),
-            # CODELAB STEP 2: Uncomment to enable code execution
-            # tools=[types.Tool(code_execution=types.ToolCodeExecution)]
+            thinking_config=types.ThinkingConfig(
+                thinking_level="MINIMAL",
+                include_thoughts=False
+            ),
+            tools=[types.Tool(code_execution=types.ToolCodeExecution)]
         ),
     )
 
@@ -82,11 +82,11 @@ def analyze_image(image_bytes: bytes, query: str = None, mime_type: str = "image
 
     if response.candidates:
         for part in response.candidates[0].content.parts:
-            if hasattr(part, "text") and part.text:
+            if getattr(part, "text", None):
                 result["answer"] += part.text
-            if hasattr(part, "executable_code") and part.executable_code:
+            if getattr(part, "executable_code", None):
                 result["plan"] = f"Generated code: {part.executable_code.code}"
-            if hasattr(part, "code_execution_result") and part.code_execution_result:
+            if getattr(part, "code_execution_result", None):
                 result["code_output"] = str(part.code_execution_result.output or "")
 
     return result
@@ -96,14 +96,19 @@ def main():
     """Run standalone verification against sample image."""
     script_dir = Path(__file__).parent
     image_path = script_dir / "assets" / "warehouse_shelf.png"
+
     if not image_path.exists():
         logger.error("Sample image not found. Run with an image path.")
         return
+
     with open(image_path, "rb") as f:
         image_bytes = f.read()
+
     mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
-    logger.info("Analyzing image with Gemini 3 Flash...")
+
+    logger.info("Analyzing image with Gemini 3 Flash via Vertex AI...")
     result = analyze_image(image_bytes, mime_type=mime)
+
     if result["plan"]:
         logger.info(f"Plan: {result['plan'][:80]}...")
     if result["code_output"]:
